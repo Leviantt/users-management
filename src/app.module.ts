@@ -9,6 +9,7 @@ import { Role } from './roles/roles.model';
 import { User } from './users/users.model';
 import { AuthModule } from './auth/auth.module';
 import { TokensModule } from './tokens/tokens.module';
+import { ProfilesModule } from './profiles/profiles.module';
 
 @Module({
   imports: [
@@ -29,6 +30,7 @@ import { TokensModule } from './tokens/tokens.module';
     RolesModule,
     AuthModule,
     TokensModule,
+    ProfilesModule,
   ],
   controllers: [],
   providers: [],

@@ -1,34 +1,38 @@
 import { Injectable, HttpException, HttpStatus } from '@nestjs/common';
 import { InjectModel } from '@nestjs/sequelize';
 import { User } from './users.model';
-import { CreateUserDto } from './dto/create-user';
+import { CreateUserDto } from './dto/create-user.dto';
 import { RolesService } from 'src/roles/roles.service';
 import { AddRoleDto } from './dto/add-role.dto';
-import { hash } from 'bcrypt';
+import { hash, compare } from 'bcrypt';
+import { GenerateUserTokenDto } from './dto/generate-user-token.dto';
+import { TokensService } from 'src/tokens/tokens.service';
 
 @Injectable()
 export class UsersService {
   constructor(
     @InjectModel(User) private user: typeof User,
     private roleService: RolesService,
+    private tokenService: TokensService,
   ) {}
-
-  async createUser(userDto: CreateUserDto) {
-    const user = await this.user.create(userDto);
-    const role = await this.roleService.getRoleByValue('USER');
-    await user.$set('roles', [role.id]);
-    user.roles = [role];
-    return user;
-  }
-
-  async getAllUsers() {
-    const users = await this.user.findAll({ include: { all: true } });
-    return users;
-  }
 
   async getUserByEmail(email: string) {
     return this.user.findOne({ where: { email }, include: { all: true } });
   }
+
+  // private async validateUser(userDto: CreateUserDto) {
+  //   const user = await this.getUserByEmail(userDto.email);
+  //   const passwordsEqual = await compare(userDto.password, user.password);
+  //   if (!passwordsEqual) {
+  //     throw new HttpException(
+  //       {
+  //         message: 'Invalid email or password',
+  //       },
+  //       HttpStatus.UNAUTHORIZED,
+  //     );
+  //   }
+  //   return user;
+  // }
 
   async addRole(dto: AddRoleDto) {
     const user = await this.user.findByPk(dto.userId);
@@ -40,85 +44,73 @@ export class UsersService {
     throw new HttpException('User or role is not found', HttpStatus.NOT_FOUND);
   }
 
-  // ///////////////
-  async register(userDto: CreateUserDto) {
-    const exists = await User.findOne({ where: { email: userDto.email } });
+  async register(createUserDto: CreateUserDto) {
+    const exists = await this.user.findOne({
+      where: { email: createUserDto.email },
+    });
 
     if (exists) {
       throw new HttpException(
-        `User with email - ${userDto.email} already exists`,
+        `User with email ${createUserDto.email} already exists`,
         HttpStatus.BAD_REQUEST,
       );
     }
 
-    const hashedPassword = await hash(userDto.password, 3);
-    const activationLink = v4();
-    const user = await User.create({
-      email,
+    const hashedPassword = await hash(createUserDto.password, 3);
+    const user = await this.user.create({
+      email: createUserDto.email,
       password: hashedPassword,
-      activationLink,
     });
-    await mailService.sendActivationLink(
-      email,
-      `${process.env.API_URL}/api/activate/${activationLink}`,
-    );
 
-    const userDto = new UserDto(user);
-    const tokens = await tokenService.generateTokens({ ...userDto });
-    await tokenService.saveRefreshToken(userDto.id, tokens.refreshToken);
+    const userDto = new GenerateUserTokenDto(user);
+    const tokens = await this.tokenService.generateTokens({ ...userDto });
+    await this.tokenService.saveRefreshToken(userDto.id, tokens.refreshToken);
 
     return { ...tokens, user: userDto };
   }
 
   async login(email, password) {
-    const user = await User.findOne({ email });
+    const user = await this.user.findOne({ where: { email } });
 
     if (!user) {
-      throw ApiError.BadRequest(`User with email ${email} doesn't exist`);
+      throw new HttpException(
+        `User with email ${email} doesn't exist`,
+        HttpStatus.NOT_FOUND,
+      );
     }
 
-    const isPasswordsEqual = await bcrypt.compare(password, user.password);
+    const isPasswordsEqual = await compare(password, user.password);
     if (!isPasswordsEqual) {
-      throw ApiError.BadRequest('Wrong password');
+      throw new HttpException('Wrong password', HttpStatus.BAD_REQUEST);
     }
 
-    const userDto = new UserDto(user);
-    const tokens = await tokenService.generateTokens({ ...userDto });
-    await tokenService.saveRefreshToken(userDto.id, tokens.refreshToken);
+    const userDto = new GenerateUserTokenDto(user);
+    const tokens = await this.tokenService.generateTokens({ ...userDto });
+    await this.tokenService.saveRefreshToken(userDto.id, tokens.refreshToken);
 
     return { ...tokens, user: userDto };
   }
 
-  async activate(activationLink) {
-    const user = await User.findOne({ activationLink });
-    if (!user) {
-      throw ApiError.BadRequest('Invalid activation link.');
-    }
-
-    user.isActivated = true;
-    await user.save();
-  }
-
   async logout(refreshToken) {
-    const tokenData = await tokenService.removeToken(refreshToken);
+    const tokenData = await this.tokenService.removeToken(refreshToken);
     return tokenData;
   }
 
   async refresh(refreshToken) {
     if (!refreshToken) {
-      throw ApiError.UnauthorizedError();
+      throw new HttpException('Token is undefined', HttpStatus.UNAUTHORIZED);
     }
 
-    const userData = tokenService.validateRefreshToken(refreshToken);
-    const tokenFromDB = tokenService.findToken(refreshToken);
+    const userData = this.tokenService.validateRefreshToken(refreshToken);
+    const tokenFromDB = this.tokenService.findRefreshToken(refreshToken);
     if (!userData || !tokenFromDB) {
-      throw ApiError.UnauthorizedError();
+      throw new HttpException('Token is undefined', HttpStatus.UNAUTHORIZED);
     }
 
-    const user = await User.findById(userData.id);
-    const userDto = new UserDto(user);
-    const tokens = await tokenService.generateTokens({ ...userDto });
-    await tokenService.saveRefreshToken(userDto.id, tokens.refreshToken);
+    const user = await this.user.findByPk(userData.id);
+    const userDto = new GenerateUserTokenDto(user);
+    const tokens = await this.tokenService.generateTokens({ ...userDto });
+    await this.tokenService.saveRefreshToken(userDto.id, tokens.refreshToken);
 
     return { ...tokens, user: userDto };
   }

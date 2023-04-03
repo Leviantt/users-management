@@ -1,9 +1,14 @@
 import { Injectable } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
+import { InjectModel } from '@nestjs/sequelize';
+import { Token } from './tokens.model';
 
 @Injectable()
 export class TokensService {
-  constructor(private jwtService: JwtService) {}
+  constructor(
+    private jwtService: JwtService,
+    @InjectModel(Token) private token: typeof Token,
+  ) {}
 
   async generateTokens(payload) {
     const accessToken = this.jwtService.sign(payload);
@@ -18,18 +23,18 @@ export class TokensService {
   }
 
   async saveRefreshToken(userId, refreshToken) {
-    const token = await Token.findOne({ user: userId });
+    const token = await this.token.findOne({ where: { userId } });
     if (token) {
       token.refreshToken = refreshToken;
       return token.save();
     }
 
-    const newToken = await Token.create({ user: userId, refreshToken });
+    const newToken = await this.token.create({ userId, refreshToken });
     return newToken;
   }
 
   async removeToken(refreshToken) {
-    const tokenData = await Token.deleteOne({ refreshToken });
+    const tokenData = await this.token.destroy({ where: { refreshToken } });
     return tokenData;
   }
 
@@ -53,8 +58,8 @@ export class TokensService {
     }
   }
 
-  async findToken(refreshToken) {
-    const token = await Token.findOne({ refreshToken });
+  async findRefreshToken(refreshToken) {
+    const token = await this.token.findOne({ where: { refreshToken } });
     return token;
   }
 }

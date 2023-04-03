@@ -6,7 +6,7 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt/dist';
-import { CreateUserDto } from 'src/users/dto/create-user';
+import { CreateUserDto } from 'src/users/dto/create-user.dto';
 import { UsersService } from 'src/users/users.service';
 import { User } from 'src/users/users.model';
 
@@ -39,8 +39,6 @@ export class AuthService {
     return this.generateToken(user);
   }
 
-  async refresh(userDto: CreateUserDto) {}
-
   private async generateToken(user: User) {
     const payload = { email: user.email, id: user.id, roles: user.roles };
     return {
@@ -48,14 +46,14 @@ export class AuthService {
     };
   }
 
-  private async validateUser(userDto: CreateUserDto) {
-    const user = await this.usersService.getUserByEmail(userDto.email);
-    const passwordsEqual = await compare(userDto.password, user.password);
-    if (!passwordsEqual) {
-      throw new UnauthorizedException({
-        message: 'Некорректная почта или пароль',
-      });
-    }
-    return user;
-  }
+  // private async validateUser(userDto: CreateUserDto) {
+  //   const user = await this.usersService.getUserByEmail(userDto.email);
+  //   const passwordsEqual = await compare(userDto.password, user.password);
+  //   if (!passwordsEqual) {
+  //     throw new UnauthorizedException({
+  //       message: 'Некорректная почта или пароль',
+  //     });
+  //   }
+  //   return user;
+  // }
 }
