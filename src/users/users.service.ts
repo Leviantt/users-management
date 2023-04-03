@@ -44,59 +44,75 @@ export class UsersService {
     throw new HttpException('User or role is not found', HttpStatus.NOT_FOUND);
   }
 
-  async register(createUserDto: CreateUserDto) {
+  async register(userDto: CreateUserDto) {
     const exists = await this.user.findOne({
-      where: { email: createUserDto.email },
+      where: { email: userDto.email },
     });
 
     if (exists) {
       throw new HttpException(
-        `User with email ${createUserDto.email} already exists`,
+        `User with email ${userDto.email} already exists`,
         HttpStatus.BAD_REQUEST,
       );
     }
 
-    const hashedPassword = await hash(createUserDto.password, 3);
+    const hashedPassword = await hash(userDto.password, 3);
     const user = await this.user.create({
-      email: createUserDto.email,
+      email: userDto.email,
       password: hashedPassword,
     });
 
-    const userDto = new GenerateUserTokenDto(user);
-    const tokens = await this.tokenService.generateTokens({ ...userDto });
-    await this.tokenService.saveRefreshToken(userDto.id, tokens.refreshToken);
+    const role = await this.roleService.getRoleByValue('USER');
+    await user.$set('roles', [role.id]);
+    user.roles = [role];
 
-    return { ...tokens, user: userDto };
+    const generateUserDto = new GenerateUserTokenDto(user);
+    const tokens = await this.tokenService.generateTokens({
+      ...generateUserDto,
+    });
+    await this.tokenService.saveRefreshToken(
+      generateUserDto.id,
+      tokens.refreshToken,
+    );
+
+    return { ...tokens, user: generateUserDto };
   }
 
-  async login(email, password) {
-    const user = await this.user.findOne({ where: { email } });
+  async login(userDto: CreateUserDto) {
+    const user = await this.user.findOne({
+      where: { email: userDto.email },
+    });
 
     if (!user) {
       throw new HttpException(
-        `User with email ${email} doesn't exist`,
+        `User with email ${userDto.email} doesn't exist`,
         HttpStatus.NOT_FOUND,
       );
     }
 
-    const isPasswordsEqual = await compare(password, user.password);
+    const isPasswordsEqual = await compare(userDto.password, user.password);
     if (!isPasswordsEqual) {
       throw new HttpException('Wrong password', HttpStatus.BAD_REQUEST);
     }
 
-    const userDto = new GenerateUserTokenDto(user);
-    const tokens = await this.tokenService.generateTokens({ ...userDto });
-    await this.tokenService.saveRefreshToken(userDto.id, tokens.refreshToken);
+    const generateUserDto = new GenerateUserTokenDto(user);
+    const tokens = await this.tokenService.generateTokens({
+      ...generateUserDto,
+    });
+    await this.tokenService.saveRefreshToken(
+      generateUserDto.id,
+      tokens.refreshToken,
+    );
 
-    return { ...tokens, user: userDto };
+    return { ...tokens, user: generateUserDto };
   }
 
-  async logout(refreshToken) {
+  async logout(refreshToken: string) {
     const tokenData = await this.tokenService.removeToken(refreshToken);
     return tokenData;
   }
 
-  async refresh(refreshToken) {
+  async refreshToken(refreshToken: string) {
     if (!refreshToken) {
       throw new HttpException('Token is undefined', HttpStatus.UNAUTHORIZED);
     }
@@ -104,7 +120,7 @@ export class UsersService {
     const userData = this.tokenService.validateRefreshToken(refreshToken);
     const tokenFromDB = this.tokenService.findRefreshToken(refreshToken);
     if (!userData || !tokenFromDB) {
-      throw new HttpException('Token is undefined', HttpStatus.UNAUTHORIZED);
+      throw new HttpException('Invalid token', HttpStatus.UNAUTHORIZED);
     }
 
     const user = await this.user.findByPk(userData.id);

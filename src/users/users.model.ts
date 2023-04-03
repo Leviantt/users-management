@@ -6,8 +6,6 @@ import {
   Table,
   BelongsToMany,
   HasOne,
-  ForeignKey,
-  BelongsTo,
 } from 'sequelize-typescript';
 import { Profile } from 'src/profiles/profiles.model';
 import { Role } from 'src/roles/roles.model';
@@ -44,14 +42,6 @@ export class User extends Model<User, UserCreationAttributes> {
   @HasOne(() => Token)
   refreshToken: Token;
 
-  @ApiProperty({ example: '1', description: 'Внешний идентификатор' })
-  @ForeignKey(() => Profile)
-  @Column({
-    type: DataType.INTEGER,
-    unique: true,
-  })
-  profileId: number;
-
-  @BelongsTo(() => Profile)
+  @HasOne(() => Profile)
   profile: Profile;
 }
