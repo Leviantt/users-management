@@ -4,6 +4,7 @@ import { UpdateProfileDto } from './dto/update-profile.dto';
 import { UsersService } from 'src/users/users.service';
 import { InjectModel } from '@nestjs/sequelize';
 import { Profile } from './profiles.model';
+import { CreateUserDto } from 'src/users/dto/create-user.dto';
 
 @Injectable()
 export class ProfilesService {
@@ -11,35 +12,64 @@ export class ProfilesService {
     @InjectModel(Profile) private profile: typeof Profile,
     private usersService: UsersService,
   ) {}
+
   async create(createProfileDto: CreateProfileDto) {
     const userInfo = await this.usersService.register({
       email: createProfileDto.email,
       password: createProfileDto.password,
     });
 
-    const user = await this.usersService.getUserByEmail(createProfileDto.email);
-
     const profile = await this.profile.create({
       firstName: createProfileDto.firstName,
       lastName: createProfileDto.lastName,
-      user,
+      phone: createProfileDto.phone,
+      userId: userInfo.user.id,
     });
     return profile;
   }
 
+  login(userDto: CreateUserDto) {
+    return this.usersService.login(userDto);
+  }
+
+  logout(cookies) {
+    const { refreshToken } = cookies;
+    return this.usersService.logout(refreshToken);
+  }
+
+  refreshToken(cookies) {
+    const { refreshToken } = cookies;
+    return this.usersService.refreshToken(refreshToken);
+  }
+
   findAll() {
-    return `This action returns all profiles`;
+    return this.profile.findAll();
   }
 
   findOne(id: number) {
-    return `This action returns a #${id} profile`;
+    return this.profile.findByPk(id);
   }
 
-  update(id: number, updateProfileDto: UpdateProfileDto) {
-    return `This action updates a #${id} profile`;
+  async update(id: number, updateProfileDto: UpdateProfileDto) {
+    const profile = await this.profile.findByPk(id);
+    const { firstName, lastName, phone } = updateProfileDto;
+
+    if (firstName.trim()) {
+      profile.firstName = firstName;
+    }
+
+    if (lastName.trim()) {
+      profile.lastName = lastName;
+    }
+
+    if (phone.trim()) {
+      profile.phone = phone;
+    }
+    await profile.save();
+    return profile;
   }
 
   remove(id: number) {
-    return `This action removes a #${id} profile`;
+    return this.profile.destroy({ where: { id } });
   }
 }

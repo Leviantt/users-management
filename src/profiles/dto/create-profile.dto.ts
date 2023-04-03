@@ -20,4 +20,7 @@ export class CreateProfileDto {
   @IsString({ message: 'Should be string' })
   readonly lastName: string;
 
+  @ApiProperty({ example: '79274326412', description: 'Phone number' })
+  @IsString({ message: 'Should be string' })
+  readonly phone: string;
 }
