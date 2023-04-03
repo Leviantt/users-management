@@ -2,17 +2,18 @@ import {
   CanActivate,
   ExecutionContext,
   ForbiddenException,
-  UnauthorizedException,
   Injectable,
+  SetMetadata,
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
-import { JwtService } from '@nestjs/jwt';
 import { Observable } from 'rxjs';
-import { ROLES_KEY } from './roles-auth.decorator';
+import { ROLES_KEY } from './roles.decorator';
+
+export const SKIP_ADMIN_CHECK = 'SKIP_ADMIN_CHECK';
 
 @Injectable()
 export class UserOwnerGuard implements CanActivate {
-  constructor(private jwtService: JwtService, private reflector: Reflector) {}
+  constructor(private reflector: Reflector) {}
 
   canActivate(
     context: ExecutionContext,
@@ -27,19 +28,12 @@ export class UserOwnerGuard implements CanActivate {
       }
 
       const req = context.switchToHttp().getRequest();
-      const authHeader = req.headers.authorization;
-      const bearer = authHeader.split(' ')[0];
-      const token = authHeader.split(' ')[1];
 
-      if (bearer !== 'Bearer' || !token) {
-        throw new UnauthorizedException({
-          message: 'Not Authorized',
-        });
+      if (req.user.id == req.params.id) {
+        SetMetadata(SKIP_ADMIN_CHECK, true);
       }
 
-      const user = this.jwtService.verify(token);
-      req.user = user;
-      return user.roles.some((role) => requiredRoles.includes(role.value));
+      return true;
     } catch (err) {
       throw new ForbiddenException({
         message: 'Access denied',

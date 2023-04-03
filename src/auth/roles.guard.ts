@@ -2,17 +2,16 @@ import {
   CanActivate,
   ExecutionContext,
   ForbiddenException,
-  UnauthorizedException,
   Injectable,
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
-import { JwtService } from '@nestjs/jwt';
 import { Observable } from 'rxjs';
-import { ROLES_KEY } from './roles-auth.decorator';
+import { ROLES_KEY } from './roles.decorator';
+import { SKIP_ADMIN_CHECK } from './user-owner.guard';
 
 @Injectable()
 export class RolesGuard implements CanActivate {
-  constructor(private jwtService: JwtService, private reflector: Reflector) {}
+  constructor(private reflector: Reflector) {}
 
   canActivate(
     context: ExecutionContext,
@@ -22,23 +21,25 @@ export class RolesGuard implements CanActivate {
         ROLES_KEY,
         [context.getHandler(), context.getClass()],
       );
+
       if (!requiredRoles) {
         return true;
       }
 
-      const req = context.switchToHttp().getRequest();
-      const authHeader = req.headers.authorization;
-      const bearer = authHeader.split(' ')[0];
-      const token = authHeader.split(' ')[1];
-
-      if (bearer !== 'Bearer' || !token) {
-        throw new UnauthorizedException({
-          message: 'Not Authorized',
-        });
+      // если единственная требуемая роль ADMIN и до этого установили пропустить
+      // проверку на админа, возвращаем true
+      if (requiredRoles.length === 1 && requiredRoles[0] === 'ADMIN') {
+        const skipAdminCheck = this.reflector.getAllAndOverride<boolean>(
+          SKIP_ADMIN_CHECK,
+          [context.getHandler(), context.getClass()],
+        );
+        if (skipAdminCheck) {
+          return true;
+        }
       }
 
-      const user = this.jwtService.verify(token);
-      req.user = user;
+      const user = context.switchToHttp().getRequest().user;
+
       return user.roles.some((role) => requiredRoles.includes(role.value));
     } catch (err) {
       throw new ForbiddenException({
