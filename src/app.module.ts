@@ -7,9 +7,10 @@ import { RolesModule } from './roles/roles.module';
 import { UserRoles } from './roles/user-roles.model';
 import { Role } from './roles/roles.model';
 import { User } from './users/users.model';
-import { AuthModule } from './auth/auth.module';
 import { TokensModule } from './tokens/tokens.module';
 import { ProfilesModule } from './profiles/profiles.module';
+import { Token } from './tokens/tokens.model';
+import { Profile } from './profiles/profiles.model';
 
 @Module({
   imports: [
@@ -23,12 +24,11 @@ import { ProfilesModule } from './profiles/profiles.module';
       username: process.env.POSTGRES_USER,
       password: process.env.POSTGRES_PASSWORD,
       database: process.env.POSTGRES_DB,
-      models: [User, Role, UserRoles],
+      models: [User, Role, UserRoles, Token, Profile],
       autoLoadModels: true,
     }),
     UsersModule,
     RolesModule,
-    AuthModule,
     TokensModule,
     ProfilesModule,
   ],
