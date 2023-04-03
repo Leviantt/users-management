@@ -12,10 +12,10 @@ import { Profile } from 'src/profiles/profiles.model';
   controllers: [],
   providers: [UsersService],
   imports: [
+    // перечисляем все модели используемые в users.model
     SequelizeModule.forFeature([User, Role, UserRoles, Profile]),
     RolesModule,
     TokensModule,
-    // forwardRef(() => AuthModule),
   ],
   exports: [UsersService],
 })

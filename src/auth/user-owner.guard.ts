@@ -19,6 +19,7 @@ export class UserOwnerGuard implements CanActivate {
     context: ExecutionContext,
   ): boolean | Promise<boolean> | Observable<boolean> {
     try {
+      // загружаем роли переданные через декоратор
       const requiredRoles = this.reflector.getAllAndOverride<string[]>(
         ROLES_KEY,
         [context.getHandler(), context.getClass()],
@@ -29,6 +30,7 @@ export class UserOwnerGuard implements CanActivate {
 
       const req = context.switchToHttp().getRequest();
 
+      // если пользователь хочет изменить свои данные, то проверку на админа нужно пропустить
       if (req.user.id == req.params.id) {
         SetMetadata(SKIP_ADMIN_CHECK, true);
       }

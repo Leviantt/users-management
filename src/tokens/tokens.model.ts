@@ -16,7 +16,7 @@ interface TokenCreationAttributes {
 
 @Table({ tableName: 'tokens' })
 export class Token extends Model<Token, TokenCreationAttributes> {
-  @ApiProperty({ example: '1', description: 'Уникальный идентификатор' })
+  @ApiProperty({ example: '1', description: 'Primary key' })
   @Column({
     type: DataType.INTEGER,
     unique: true,
@@ -25,7 +25,7 @@ export class Token extends Model<Token, TokenCreationAttributes> {
   })
   id: number;
 
-  @ApiProperty({ example: '1', description: 'Внешний идентификатор' })
+  @ApiProperty({ example: '1', description: 'Foreign key' })
   @ForeignKey(() => User)
   @Column({
     type: DataType.INTEGER,

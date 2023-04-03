@@ -14,9 +14,11 @@ import { Profile } from './profiles/profiles.model';
 
 @Module({
   imports: [
+    // подгружаем environment variables из разных файлов в зависимости от мода
     ConfigModule.forRoot({
       envFilePath: `.${process.env.NODE_ENV}.env`,
     }),
+    // подключаем postgres
     SequelizeModule.forRoot({
       dialect: 'postgres',
       host: 'localhost',
@@ -32,7 +34,5 @@ import { Profile } from './profiles/profiles.model';
     TokensModule,
     ProfilesModule,
   ],
-  controllers: [],
-  providers: [],
 })
 export class AppModule {}

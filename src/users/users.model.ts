@@ -12,11 +12,13 @@ import { Role } from 'src/roles/roles.model';
 import { UserRoles } from 'src/roles/user-roles.model';
 import { Token } from 'src/tokens/tokens.model';
 
+// специфицируем поля, которых достаточно для создания пользователя
 interface UserCreationAttributes {
   email: string;
   password: string;
 }
 
+// модель пользователя
 @Table({ tableName: 'users' })
 export class User extends Model<User, UserCreationAttributes> {
   @ApiProperty({ example: '1', description: 'Primary key' })
