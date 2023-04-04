@@ -7,6 +7,9 @@ import { AddRoleDto } from './dto/add-role.dto';
 import { hash, compare } from 'bcrypt';
 import { GenerateUserTokenDto } from './dto/generate-user-token.dto';
 import { TokensService } from 'src/tokens/tokens.service';
+import { Transaction } from 'sequelize';
+
+export type CreateUserOptions = { transaction?: Transaction };
 
 @Injectable()
 export class UsersService {
@@ -44,7 +47,7 @@ export class UsersService {
     throw new HttpException('User or role is not found', HttpStatus.NOT_FOUND);
   }
 
-  async register(userDto: CreateUserDto) {
+  async register(userDto: CreateUserDto, options: CreateUserOptions = {}) {
     const exists = await this.user.findOne({
       where: { email: userDto.email },
     });
@@ -57,10 +60,14 @@ export class UsersService {
     }
 
     const hashedPassword = await hash(userDto.password, 3);
-    const user = await this.user.create({
-      email: userDto.email,
-      password: hashedPassword,
-    });
+
+    const user = await this.user.create(
+      {
+        email: userDto.email,
+        password: hashedPassword,
+      },
+      options,
+    );
 
     const role = await this.roleService.getRoleByValue('USER');
     await user.$set('roles', [role.id]);

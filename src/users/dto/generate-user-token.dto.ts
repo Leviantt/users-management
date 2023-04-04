@@ -3,7 +3,7 @@ import { User } from '../users.model';
 
 export class GenerateUserTokenDto {
   constructor(user: User) {
-    this.roles = user.roles.map((role) => role.value);
+    this.roles = user.roles?.map((role) => role.value);
     this.id = user.id;
   }
 

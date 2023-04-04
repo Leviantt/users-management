@@ -11,7 +11,10 @@ export class TokensService {
   ) {}
 
   async generateTokens(payload) {
-    const accessToken = this.jwtService.sign(payload);
+    const accessToken = this.jwtService.sign(payload, {
+      secret: process.env.JWT_ACCESS_TOKEN_SECRET,
+      expiresIn: '30m',
+    });
     const refreshToken = this.jwtService.sign(payload, {
       secret: process.env.JWT_REFRESH_TOKEN_SECRET,
       expiresIn: '30d',
@@ -40,7 +43,9 @@ export class TokensService {
 
   validateAccessToken(accessToken) {
     try {
-      const userData = this.jwtService.verify(accessToken);
+      const userData = this.jwtService.verify(accessToken, {
+        secret: process.env.JWT_ACCESS_TOKEN_SECRET,
+      });
       return userData;
     } catch (err) {
       return null;

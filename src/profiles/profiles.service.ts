@@ -5,27 +5,39 @@ import { UsersService } from 'src/users/users.service';
 import { InjectModel } from '@nestjs/sequelize';
 import { Profile } from './profiles.model';
 import { CreateUserDto } from 'src/users/dto/create-user.dto';
+import { Sequelize } from 'sequelize';
 
 @Injectable()
 export class ProfilesService {
   constructor(
     @InjectModel(Profile) private profile: typeof Profile,
     private usersService: UsersService,
+    private sequelize: Sequelize,
   ) {}
 
-  async create(createProfileDto: CreateProfileDto) {
-    const userInfo = await this.usersService.register({
-      email: createProfileDto.email,
-      password: createProfileDto.password,
+  async create(createProfileDto: CreateProfileDto): Promise<any> {
+    const response = await this.sequelize.transaction(async (t) => {
+      const userInfo = await this.usersService.register(
+        {
+          email: createProfileDto.email,
+          password: createProfileDto.password,
+        },
+        { transaction: t },
+      );
+
+      const profile = await this.profile.create(
+        {
+          firstName: createProfileDto.firstName,
+          lastName: createProfileDto.lastName,
+          phone: createProfileDto.phone,
+          userId: userInfo.user.id,
+        },
+        { transaction: t },
+      );
+      return { ...profile, accessToken: userInfo.accessToken };
     });
 
-    const profile = await this.profile.create({
-      firstName: createProfileDto.firstName,
-      lastName: createProfileDto.lastName,
-      phone: createProfileDto.phone,
-      userId: userInfo.user.id,
-    });
-    return profile;
+    return response;
   }
 
   login(userDto: CreateUserDto) {
