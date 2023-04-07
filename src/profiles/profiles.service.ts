@@ -5,7 +5,7 @@ import { UsersService } from 'src/users/users.service';
 import { InjectModel } from '@nestjs/sequelize';
 import { Profile } from './profiles.model';
 import { CreateUserDto } from 'src/users/dto/create-user.dto';
-import { Sequelize } from 'sequelize';
+import { Sequelize } from 'sequelize-typescript';
 
 @Injectable()
 export class ProfilesService {

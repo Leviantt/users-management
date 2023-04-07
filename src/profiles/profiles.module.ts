@@ -15,7 +15,7 @@ import { TokensModule } from 'src/tokens/tokens.module';
     SequelizeModule.forFeature([Profile, User]),
     UsersModule,
     JwtModule,
-    TokensModule
+    TokensModule,
   ],
 })
 export class ProfilesModule {}

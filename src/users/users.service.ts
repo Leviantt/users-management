@@ -50,6 +50,7 @@ export class UsersService {
   async register(userDto: CreateUserDto, options: CreateUserOptions = {}) {
     const exists = await this.user.findOne({
       where: { email: userDto.email },
+      ...options,
     });
 
     if (exists) {
@@ -61,14 +62,12 @@ export class UsersService {
 
     const hashedPassword = await hash(userDto.password, 3);
 
-    const user = await this.user.create(
-      {
-        email: userDto.email,
-        password: hashedPassword,
-      },
-      options,
-    );
-
+    const user = await this.user.create({
+      email: userDto.email,
+      password: hashedPassword,
+    });
+    console.log('user');
+    console.log(user);
     const role = await this.roleService.getRoleByValue('USER');
     await user.$set('roles', [role.id]);
     user.roles = [role];
