@@ -11,7 +11,11 @@ import { TokensModule } from 'src/tokens/tokens.module';
 @Module({
   controllers: [RolesController],
   providers: [RolesService],
-  imports: [SequelizeModule.forFeature([Role, User, UserRoles]), JwtModule, TokensModule],
+  imports: [
+    SequelizeModule.forFeature([Role, User, UserRoles]),
+    JwtModule,
+    TokensModule,
+  ],
   exports: [RolesService],
 })
 export class RolesModule {}

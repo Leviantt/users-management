@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { InjectModel } from '@nestjs/sequelize';
 import { Token } from './tokens.model';
+import { TransactionOptions } from 'src/users/types/TransactionOptions';
 
 @Injectable()
 export class TokensService {
@@ -25,14 +26,18 @@ export class TokensService {
     };
   }
 
-  async saveRefreshToken(userId, refreshToken) {
+  async saveRefreshToken(
+    userId,
+    refreshToken,
+    options: TransactionOptions = {},
+  ) {
     const token = await this.token.findOne({ where: { userId } });
     if (token) {
       token.refreshToken = refreshToken;
       return token.save();
     }
 
-    const newToken = await this.token.create({ userId, refreshToken });
+    const newToken = await this.token.create({ userId, refreshToken }, options);
     return newToken;
   }
 

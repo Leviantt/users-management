@@ -16,13 +16,13 @@ export class ProfilesService {
   ) {}
 
   async create(createProfileDto: CreateProfileDto): Promise<any> {
-    const response = await this.sequelize.transaction(async (t) => {
+    const response = await this.sequelize.transaction(async (transaction) => {
       const userInfo = await this.usersService.register(
         {
           email: createProfileDto.email,
           password: createProfileDto.password,
         },
-        { transaction: t },
+        { transaction },
       );
 
       const profile = await this.profile.create(
@@ -32,9 +32,13 @@ export class ProfilesService {
           phone: createProfileDto.phone,
           userId: userInfo.user.id,
         },
-        { transaction: t },
+        { transaction },
       );
-      return { ...profile, accessToken: userInfo.accessToken };
+      return {
+        ...profile?.dataValues,
+        accessToken: userInfo.accessToken,
+        refreshToken: userInfo.refreshToken,
+      };
     });
 
     return response;

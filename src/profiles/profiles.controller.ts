@@ -8,8 +8,9 @@ import {
   Delete,
   Req,
   UseGuards,
+  Res,
 } from '@nestjs/common';
-import { Request } from 'express';
+import { Request, Response } from 'express';
 
 import { ProfilesService } from './profiles.service';
 import { CreateProfileDto } from './dto/create-profile.dto';
@@ -25,13 +26,23 @@ export class ProfilesController {
   constructor(private readonly profilesService: ProfilesService) {}
 
   @Post('register')
-  register(@Body() createProfileDto: CreateProfileDto) {
-    return this.profilesService.create(createProfileDto);
+  async register(
+    @Body() createProfileDto: CreateProfileDto,
+    @Res({ passthrough: true }) response: Response,
+  ) {
+    const profileData = await this.profilesService.create(createProfileDto);
+    response.cookie('refreshToken', profileData.refreshToken);
+    return profileData;
   }
 
   @Post('login')
-  login(@Body() userDto: CreateUserDto) {
-    return this.profilesService.login(userDto);
+  async login(
+    @Body() userDto: CreateUserDto,
+    @Res({ passthrough: true }) response: Response,
+  ) {
+    const userData = await this.profilesService.login(userDto);
+    response.cookie('refreshToken', userData.refreshToken);
+    return userData;
   }
 
   @UseGuards(AuthGuard)

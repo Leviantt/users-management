@@ -7,9 +7,7 @@ import { AddRoleDto } from './dto/add-role.dto';
 import { hash, compare } from 'bcrypt';
 import { GenerateUserTokenDto } from './dto/generate-user-token.dto';
 import { TokensService } from 'src/tokens/tokens.service';
-import { Transaction } from 'sequelize';
-
-export type CreateUserOptions = { transaction?: Transaction };
+import { TransactionOptions } from './types/TransactionOptions';
 
 @Injectable()
 export class UsersService {
@@ -23,20 +21,6 @@ export class UsersService {
     return this.user.findOne({ where: { email }, include: { all: true } });
   }
 
-  // private async validateUser(userDto: CreateUserDto) {
-  //   const user = await this.getUserByEmail(userDto.email);
-  //   const passwordsEqual = await compare(userDto.password, user.password);
-  //   if (!passwordsEqual) {
-  //     throw new HttpException(
-  //       {
-  //         message: 'Invalid email or password',
-  //       },
-  //       HttpStatus.UNAUTHORIZED,
-  //     );
-  //   }
-  //   return user;
-  // }
-
   async addRole(dto: AddRoleDto) {
     const user = await this.user.findByPk(dto.userId);
     const role = await this.roleService.getRoleByValue(dto.value);
@@ -47,10 +31,9 @@ export class UsersService {
     throw new HttpException('User or role is not found', HttpStatus.NOT_FOUND);
   }
 
-  async register(userDto: CreateUserDto, options: CreateUserOptions = {}) {
+  async register(userDto: CreateUserDto, options: TransactionOptions = {}) {
     const exists = await this.user.findOne({
       where: { email: userDto.email },
-      ...options,
     });
 
     if (exists) {
@@ -62,14 +45,15 @@ export class UsersService {
 
     const hashedPassword = await hash(userDto.password, 3);
 
-    const user = await this.user.create({
-      email: userDto.email,
-      password: hashedPassword,
-    });
-    console.log('user');
-    console.log(user);
+    const user = await this.user.create(
+      {
+        email: userDto.email,
+        password: hashedPassword,
+      },
+      options,
+    );
     const role = await this.roleService.getRoleByValue('USER');
-    await user.$set('roles', [role.id]);
+    await user.$set('roles', [role.id], options);
     user.roles = [role];
 
     const generateUserDto = new GenerateUserTokenDto(user);
@@ -79,6 +63,7 @@ export class UsersService {
     await this.tokenService.saveRefreshToken(
       generateUserDto.id,
       tokens.refreshToken,
+      options,
     );
 
     return { ...tokens, user: generateUserDto };
